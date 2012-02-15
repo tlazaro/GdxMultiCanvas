@@ -1,0 +1,17 @@
+#java specific
+*.class
+
+## generic files to ignore
+*~
+*.lock
+*.DS_Store
+*.swp
+*.out
+
+# Netbeans ignore stuff
+/nbproject/private/
+/build/
+
+# Eclipse ignore stuff
+.project
+.classpath
