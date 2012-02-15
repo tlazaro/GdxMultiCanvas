@@ -1,7 +1,7 @@
 GdxMultiCanvas
 -------------------------------------------------------------------------------
 
-This project is just a simple test for having multiple canvases inside a Gdx application. It's is a work in progress and doesn't yet work as expected.
+This project is just a simple test for having multiple canvases inside a Gdx application. It is a work in progress and doesn't yet work as expected.
 
 Provided are two main classes
 
@@ -29,3 +29,8 @@ Usage
 -------------------------------------------------------------------------------
 
 A Netbeans project is already setup, you only have to run it. For other environments just make sure the provided jars inside the 'lib' folder are included.
+
+License
+-------------------------------------------------------------------------------
+
+I don't really care, do whatever you want with the code. I would like to have this included in Libgdx core API if it works. If it is mandatory to provide a license Apache 2 it is.
