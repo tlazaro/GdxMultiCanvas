@@ -2,10 +2,12 @@ package multicanvastest;
 
 import com.badlogic.gdx.backends.lwjgl.LwjglMultiCanvas;
 import com.badlogic.gdx.graphics.Color;
-import java.awt.Frame;
+import java.awt.BorderLayout;
 import java.awt.GridLayout;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
 import org.lwjgl.LWJGLException;
 import org.lwjgl.opengl.AWTGLCanvas;
 
@@ -14,7 +16,7 @@ import org.lwjgl.opengl.AWTGLCanvas;
  *
  * @author tomas
  */
-public class GdxTest extends Frame {
+public class GdxTest extends JFrame {
 
     /**
      * AWT GL canvas
@@ -30,9 +32,25 @@ public class GdxTest extends Frame {
         setTitle("GDX LWJGL AWT Canvas Test");
         setSize(640, 320);
         setLayout(new GridLayout(1, 3));
-        add(canvas0 = app.getCanvases().get(0));
-        add(canvas1 = app.addListener(new BasicApplication(Color.MAGENTA)));
-        add(canvas2 = app.addListener(new BasicApplication(Color.YELLOW)));
+        
+        JPanel panel = new JPanel();
+        panel.setLayout(new BorderLayout(0,0));
+        canvas0 = app.getCanvases().get(0);
+        panel.add(canvas0, BorderLayout.CENTER);
+        add(panel);
+        
+        panel = new JPanel();
+        panel.setLayout(new BorderLayout(0,0));
+        canvas1 = app.addListener(new BasicApplication(Color.MAGENTA));
+        panel.add(canvas1, BorderLayout.CENTER);
+        add(panel);
+        
+        panel = new JPanel();
+        panel.setLayout(new BorderLayout(0,0));
+        canvas2 = app.addListener(new BasicApplication(Color.YELLOW));
+        panel.add(canvas2, BorderLayout.CENTER);
+        add(panel);
+        
         addWindowListener(new WindowAdapter() {
 
             @Override

@@ -104,11 +104,13 @@ public class LwjglMultiCanvas implements Application {
             canvases.add(canvas = new AWTGLCanvas() {
 
                 private final Dimension minSize = new Dimension(0, 0);
-
+                private boolean added = false;
+                
                 public final void addNotify() {
                     super.addNotify();
+                    
+                    added = true;
 
-                    final AWTGLCanvas thiis = this;
                     EventQueue.invokeLater(new Runnable() {
 
                         public void run() {
@@ -122,10 +124,18 @@ public class LwjglMultiCanvas implements Application {
                         }
                     });
                 }
-
+                
                 public final void removeNotify() {
-                    stop();
                     super.removeNotify();
+                    
+                    if (added) {
+                        added = false;
+                        
+                        listener.pause();
+                        listener.dispose();
+
+                        removeCanvasAndListener(this, listener);
+                    }
                 }
 
                 public Dimension getMinimumSize() {
@@ -160,6 +170,11 @@ public class LwjglMultiCanvas implements Application {
         }
 
         return canvas;
+    }
+    
+    private void removeCanvasAndListener(AWTGLCanvas canvas, ApplicationListener listener) {
+        listeners.add(listener);
+        canvases.remove(canvas);
     }
 
     protected void setDisplayMode(int width, int height) {
