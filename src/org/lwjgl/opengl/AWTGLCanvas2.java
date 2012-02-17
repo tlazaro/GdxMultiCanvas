@@ -74,7 +74,7 @@ public class AWTGLCanvas2 extends Canvas implements DrawableLWJGL, ComponentList
      * Context handle
      */
     private PeerInfo peer_info;
-    private ContextGL context;
+    volatile private ContextGL context;
     /**
      * re-entry counter for support for re-entrant redrawing in paint(). It happens when using dialog boxes.
      */
@@ -220,7 +220,6 @@ public class AWTGLCanvas2 extends Canvas implements DrawableLWJGL, ComponentList
      */
     public void removeNotify() {
         synchronized (SYNC_LOCK) {
-            destroy();
             super.removeNotify();
         }
     }
@@ -334,9 +333,26 @@ public class AWTGLCanvas2 extends Canvas implements DrawableLWJGL, ComponentList
         return context != null;
     }
 
+    public void lockPeer() throws LWJGLException {
+        peer_info.lockAndGetHandle();
+    }
+
+    public void unlockPeer() throws LWJGLException {
+        peer_info.unlock();
+    }
+    
+    public void updateContext() {
+        context.update();
+    }
+    
+    private final Dimension min = new Dimension(1, 1);
+    @Override
+    public Dimension getMinimumSize() {
+        return min;
+    }
+
     @Override
     public final void paint(Graphics g) {
-        System.out.println("PAINT");
         if (context == null) {
             synchronized (SYNC_LOCK) {
                 try {
@@ -410,7 +426,6 @@ public class AWTGLCanvas2 extends Canvas implements DrawableLWJGL, ComponentList
 //            exceptionOccurred(exception);
 //        }
 //    }
-
     /**
      * This method will be called if an unhandled LWJGLException occurs in paint(). Override this method to be notified of this.
      *

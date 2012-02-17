@@ -13,7 +13,6 @@
  */
 package com.badlogic.gdx.backends.lwjgl;
 
-import java.awt.Canvas;
 import java.awt.Toolkit;
 import java.nio.ByteBuffer;
 
@@ -30,8 +29,6 @@ import com.badlogic.gdx.graphics.GLCommon;
 import com.badlogic.gdx.graphics.GLU;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.utils.GdxRuntimeException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.lwjgl.opengl.AWTGLCanvas2;
 import org.lwjgl.opengl.GLContext;
 
@@ -53,11 +50,11 @@ public class LwjglGraphics2 implements Graphics {
     int frames = 0;
     int fps;
     long lastTime = System.nanoTime();
-    AWTGLCanvas2 canvas;
+    volatile AWTGLCanvas2 canvas;
     boolean vsync = false;
     boolean resize = false;
     LwjglApplicationConfiguration config;
-    BufferFormat bufferFormat = new BufferFormat(8, 8, 8, 8, 16, 8, 0, false);
+    Graphics.BufferFormat bufferFormat = new Graphics.BufferFormat(8, 8, 8, 8, 16, 8, 0, false);
     String extensions;
 
     LwjglGraphics2(LwjglApplicationConfiguration config) {
@@ -108,8 +105,8 @@ public class LwjglGraphics2 implements Graphics {
         return deltaTime;
     }
 
-    public GraphicsType getType() {
-        return GraphicsType.LWJGL;
+    public Graphics.GraphicsType getType() {
+        return Graphics.GraphicsType.LWJGL;
     }
 
     public int getFramesPerSecond() {
@@ -139,7 +136,6 @@ public class LwjglGraphics2 implements Graphics {
         if (this.canvas.setupContext()) {
             try {
                 canvas.makeCurrent();
-//            Display.setParent(canvas);
             } catch (LWJGLException e) {
                 e.printStackTrace();
             }
@@ -172,33 +168,32 @@ public class LwjglGraphics2 implements Graphics {
         int samples = 0;
         try {
             Display.create(new PixelFormat(config.r + config.g + config.b, config.a, config.depth, config.stencil, config.samples));
-            bufferFormat = new BufferFormat(config.r, config.g, config.b, config.a, config.depth, config.stencil, config.samples,
-                    false);
+            bufferFormat = new Graphics.BufferFormat(config.r, config.g, config.b, config.a, config.depth, config.stencil, config.samples, false);
         } catch (Exception ex) {
             Display.destroy();
             try {
                 Display.create(new PixelFormat(0, 16, 8));
                 if (getDesktopDisplayMode().bitsPerPixel == 16) {
-                    bufferFormat = new BufferFormat(5, 6, 5, 0, 16, 8, 0, false);
+                    bufferFormat = new Graphics.BufferFormat(5, 6, 5, 0, 16, 8, 0, false);
                 }
                 if (getDesktopDisplayMode().bitsPerPixel == 24) {
-                    bufferFormat = new BufferFormat(8, 8, 8, 0, 16, 8, 0, false);
+                    bufferFormat = new Graphics.BufferFormat(8, 8, 8, 0, 16, 8, 0, false);
                 }
                 if (getDesktopDisplayMode().bitsPerPixel == 32) {
-                    bufferFormat = new BufferFormat(8, 8, 8, 8, 16, 8, 0, false);
+                    bufferFormat = new Graphics.BufferFormat(8, 8, 8, 8, 16, 8, 0, false);
                 }
             } catch (Exception ex2) {
                 Display.destroy();
                 try {
                     Display.create(new PixelFormat());
                     if (getDesktopDisplayMode().bitsPerPixel == 16) {
-                        bufferFormat = new BufferFormat(5, 6, 5, 0, 8, 0, 0, false);
+                        bufferFormat = new Graphics.BufferFormat(5, 6, 5, 0, 8, 0, 0, false);
                     }
                     if (getDesktopDisplayMode().bitsPerPixel == 24) {
-                        bufferFormat = new BufferFormat(8, 8, 8, 0, 8, 0, 0, false);
+                        bufferFormat = new Graphics.BufferFormat(8, 8, 8, 0, 8, 0, 0, false);
                     }
                     if (getDesktopDisplayMode().bitsPerPixel == 32) {
-                        bufferFormat = new BufferFormat(8, 8, 8, 8, 8, 0, 0, false);
+                        bufferFormat = new Graphics.BufferFormat(8, 8, 8, 8, 8, 0, 0, false);
                     }
                 } catch (Exception ex3) {
                     if (ex3.getMessage().contains("Pixel format not accelerated")) {
@@ -268,7 +263,7 @@ public class LwjglGraphics2 implements Graphics {
         return true;
     }
 
-    private class LwjglDisplayMode extends DisplayMode {
+    private class LwjglDisplayMode extends Graphics.DisplayMode {
 
         org.lwjgl.opengl.DisplayMode mode;
 
@@ -279,8 +274,8 @@ public class LwjglGraphics2 implements Graphics {
     }
 
     @Override
-    public boolean setDisplayMode(DisplayMode displayMode) {
-        org.lwjgl.opengl.DisplayMode mode = ((LwjglDisplayMode) displayMode).mode;
+    public boolean setDisplayMode(Graphics.DisplayMode displayMode) {
+        org.lwjgl.opengl.DisplayMode mode = ((LwjglGraphics2.LwjglDisplayMode) displayMode).mode;
         try {
             if (!mode.isFullscreenCapable()) {
                 Display.setDisplayMode(mode);
@@ -360,15 +355,15 @@ public class LwjglGraphics2 implements Graphics {
     }
 
     @Override
-    public DisplayMode[] getDisplayModes() {
+    public Graphics.DisplayMode[] getDisplayModes() {
         try {
             org.lwjgl.opengl.DisplayMode[] availableDisplayModes = Display.getAvailableDisplayModes();
-            DisplayMode[] modes = new DisplayMode[availableDisplayModes.length];
+            Graphics.DisplayMode[] modes = new Graphics.DisplayMode[availableDisplayModes.length];
 
             int idx = 0;
             for (org.lwjgl.opengl.DisplayMode mode : availableDisplayModes) {
                 if (mode.isFullscreenCapable()) {
-                    modes[idx++] = new LwjglDisplayMode(mode.getWidth(), mode.getHeight(), mode.getFrequency(),
+                    modes[idx++] = new LwjglGraphics2.LwjglDisplayMode(mode.getWidth(), mode.getHeight(), mode.getFrequency(),
                             mode.getBitsPerPixel(), mode);
                 }
             }
@@ -380,9 +375,9 @@ public class LwjglGraphics2 implements Graphics {
     }
 
     @Override
-    public DisplayMode getDesktopDisplayMode() {
+    public Graphics.DisplayMode getDesktopDisplayMode() {
         org.lwjgl.opengl.DisplayMode mode = Display.getDesktopDisplayMode();
-        return new LwjglDisplayMode(mode.getWidth(), mode.getHeight(), mode.getFrequency(), mode.getBitsPerPixel(), mode);
+        return new LwjglGraphics2.LwjglDisplayMode(mode.getWidth(), mode.getHeight(), mode.getFrequency(), mode.getBitsPerPixel(), mode);
     }
 
     @Override
@@ -400,7 +395,7 @@ public class LwjglGraphics2 implements Graphics {
     }
 
     @Override
-    public BufferFormat getBufferFormat() {
+    public Graphics.BufferFormat getBufferFormat() {
         return bufferFormat;
     }
 
