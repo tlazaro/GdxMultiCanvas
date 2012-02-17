@@ -18,7 +18,7 @@ Instead of working on the AWT I modified and split it's behavior so it can be us
 
 * LwjglMultiCanvas
 
-The application can be created and new canvases can just be added and removed while running. It currently updates at a given rate using a Timer. A better main loop will be provided. Input still not implemented
+The application can be created and new canvases can just be added and removed while running. It currently updates at a given rate using a Timer. A better main loop will be provided.
 
 Help
 -------------------------------------------------------------------------------
