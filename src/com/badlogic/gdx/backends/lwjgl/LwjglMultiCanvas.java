@@ -13,28 +13,13 @@ package com.badlogic.gdx.backends.lwjgl;
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
  * ****************************************************************************
  */
-import java.awt.EventQueue;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.lwjgl.opengl.Display;
-
-import com.badlogic.gdx.Application;
-import com.badlogic.gdx.ApplicationListener;
-import com.badlogic.gdx.Audio;
-import com.badlogic.gdx.Files;
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Graphics;
-import com.badlogic.gdx.Graphics.DisplayMode;
-import com.badlogic.gdx.Input;
-import com.badlogic.gdx.Preferences;
+import com.badlogic.gdx.*;
 import com.badlogic.gdx.backends.openal.OpenALAudio;
-import com.badlogic.gdx.utils.GdxRuntimeException;
-import java.awt.Dimension;
+import java.awt.EventQueue;
+import java.util.*;
+import java.util.concurrent.Executors;
 import org.lwjgl.LWJGLException;
-import org.lwjgl.opengl.AWTGLCanvas;
+import org.lwjgl.opengl.AWTGLCanvas2;
 
 /**
  * An OpenGL surface on an AWT Canvas, allowing OpenGL to be embedded in a Swing application. All OpenGL calls are done on the EDT. This is slightly less
@@ -45,47 +30,30 @@ import org.lwjgl.opengl.AWTGLCanvas;
  */
 public class LwjglMultiCanvas implements Application {
 
-    final LwjglGraphics graphics;
+    final LwjglGraphics2 graphics;
     final OpenALAudio audio;
     final LwjglFiles files;
     final LwjglInput input;
     final List<Runnable> runnables = new ArrayList<Runnable>();
+    final List<AWTCanvasContext> canvases = new ArrayList<AWTCanvasContext>();
     boolean running = true;
     int logLevel = LOG_INFO;
-    private final ArrayList<ApplicationListener> listeners = new ArrayList<ApplicationListener>();
-    private final ArrayList<AWTGLCanvas> canvases = new ArrayList<AWTGLCanvas>();
+    Map<String, Preferences> preferences = new HashMap<String, Preferences>();
 
-    public LwjglMultiCanvas(ApplicationListener listener, boolean useGL2) {
+    private class AWTCanvasContext {
+
+        int width;
+        int height;
+        boolean initialized = false;
+        boolean resize = false;
+        AWTGLCanvas2 canvas;
+        ApplicationListener listener;
+    }
+
+    public LwjglMultiCanvas(ApplicationListener listener, LwjglApplicationConfiguration config) {
         LwjglNativesLoader.load();
 
-        AWTGLCanvas canvas = addListener(listener);
-        graphics = new LwjglGraphics(canvas, useGL2) {
-
-            public void setTitle(String title) {
-                super.setTitle(title);
-                LwjglMultiCanvas.this.setTitle(title);
-            }
-
-            public boolean setDisplayMode(int width, int height, boolean fullscreen) {
-                if (!super.setDisplayMode(width, height, fullscreen)) {
-                    return false;
-                }
-                if (!fullscreen) {
-                    LwjglMultiCanvas.this.setDisplayMode(width, height);
-                }
-                return true;
-            }
-
-            public boolean setDisplayMode(DisplayMode displayMode) {
-                if (!super.setDisplayMode(displayMode)) {
-                    return false;
-                }
-                LwjglMultiCanvas.this.setDisplayMode(displayMode.width, displayMode.height);
-                return true;
-            }
-        };
-
-        graphics.setVSync(true);
+        graphics = new LwjglGraphics2(config);
         audio = new OpenALAudio();
         files = new LwjglFiles();
         input = new LwjglInput();
@@ -95,96 +63,131 @@ public class LwjglMultiCanvas implements Application {
         Gdx.audio = audio;
         Gdx.files = files;
         Gdx.input = input;
-    }
 
-    public final AWTGLCanvas addListener(final ApplicationListener listener) {
-        AWTGLCanvas canvas = null;
-        listeners.add(listener);
-        try {
-            canvases.add(canvas = new AWTGLCanvas() {
-
-                private final Dimension minSize = new Dimension(0, 0);
-                private boolean added = false;
-                
-                public final void addNotify() {
-                    super.addNotify();
-                    
-                    added = true;
-
-                    EventQueue.invokeLater(new Runnable() {
-
-                        public void run() {
-                            try {
-                                graphics.setupDisplay();
-                            } catch (LWJGLException ex) {
-                                stopped();
-                                throw new GdxRuntimeException(ex);
-                            }
-
-                        }
-                    });
-                }
-                
-                public final void removeNotify() {
-                    super.removeNotify();
-                    
-                    if (added) {
-                        added = false;
-                        
-                        listener.pause();
-                        listener.dispose();
-
-                        removeCanvasAndListener(this, listener);
-                    }
-                }
-
-                public Dimension getMinimumSize() {
-                    return minSize;
-                }
-
-                @Override
-                public void initGL() {
-                    graphics.canvas = this;
-
-                    listener.create();
-                    listener.resize(Math.max(1, graphics.getWidth()), Math.max(1, graphics.getHeight()));
-                }
-
-                @Override
-                public void paintGL() {
-                    graphics.canvas = this;
-
-                    listener.render();
-                    try {
-                        swapBuffers();
-                    } catch (LWJGLException ex) {
-                        stopped();
-                        throw new GdxRuntimeException(ex);
-                    }
-                    repaint();
-                }
-            });
-
-        } catch (Exception ex) {
-            throw new GdxRuntimeException(ex);
+        if (listener != null) {
+            AWTCanvasContext context = new AWTCanvasContext();
+            context.width = config.width;
+            context.height = config.height;
+            context.canvas = null;
+            context.listener = listener;
+            synchronized (canvases) {
+                canvases.add(context);
+            }
         }
 
-        return canvas;
-    }
-    
-    private void removeCanvasAndListener(AWTGLCanvas canvas, ApplicationListener listener) {
-        listeners.add(listener);
-        canvases.remove(canvas);
+        mainLoop();
     }
 
-    protected void setDisplayMode(int width, int height) {
+    private void mainLoop() {
+        graphics.lastTime = System.nanoTime();
+        running = true;
+
+        new Timer().scheduleAtFixedRate(new TimerTask() {
+
+            @Override
+            public void run() {
+                synchronized (runnables) {
+                    for (int i = 0; i < runnables.size(); i++) {
+                        runnables.get(i).run();
+                    }
+                    runnables.clear();
+                }
+
+                if (running) {
+                    graphics.updateTime();
+
+                    synchronized (canvases) {
+                        for (AWTCanvasContext context : canvases) {
+                            updateCanvas(context);
+                        }
+                    }
+                    audio.update();
+                } else {
+//					display.dispose();
+                    if (graphics.config.forceExit) {
+                        System.exit(-1);
+                    }
+                }
+            }
+        }, 100, 100);
     }
 
-    protected void setTitle(String title) {
+    private void updateCanvas(AWTCanvasContext context) {
+        // makes OpenGL context the one from current canvas
+        if (context.canvas != null) {
+            if (!graphics.setupCanvas(context.canvas)) {
+                return;
+            }
+//            input.setCurrentCanvas(context.canvas); TODO
+        }
+
+        input.processEvents();
+
+        if (!context.initialized) {
+            // initialize canvas sub-App
+            context.listener.create();
+            context.resize = true;
+            context.initialized = true;
+            if (context.canvas != null) {
+                context.canvas.setCursor(null);
+            }
+        }
+
+        if (context.resize) {
+            context.resize = false;
+            context.width = graphics.getWidth();
+            context.height = graphics.getHeight();
+            context.listener.resize(graphics.getWidth(), graphics.getHeight());
+        }
+
+        if (context.canvas != null) {
+            int width = context.canvas.getWidth();
+            int height = context.canvas.getHeight();
+            if (context.width != width || context.height != height) {
+                context.width = width;
+                context.height = height;
+                context.listener.resize(context.width, context.height);
+            }
+        }
+
+        context.listener.render();
+        if (context.canvas != null) {
+            try {
+                context.canvas.swapBuffers();
+            } catch (LWJGLException ex) {
+                ex.printStackTrace();
+            }
+        }
+
+//        input.resetValues(); TODO
     }
 
-    public List<AWTGLCanvas> getCanvases() {
-        return canvases;
+    public void addCanvas(AWTGLCanvas2 canvas, ApplicationListener listener) {
+        AWTCanvasContext context = new AWTCanvasContext();
+        context.canvas = canvas;
+        context.listener = listener;
+        synchronized (canvases) {
+            canvases.add(context);
+        }
+//        input.initContext(canvas); TODO
+    }
+
+    public void removeCanvas(AWTGLCanvas2 canvas) {
+        AWTCanvasContext context = null;
+        synchronized (canvases) {
+            int index = canvases.indexOf(canvas);
+            if (index >= 0) {
+                context = canvases.remove(index);
+            }
+        }
+
+        if (context != null) {
+            if (context.initialized) {
+                context.listener.pause();
+                context.listener.dispose();
+            }
+        }
+//        input.removeContext(canvas); //TODO
     }
 
     @Override
@@ -217,80 +220,6 @@ public class LwjglMultiCanvas implements Application {
         return 0;
     }
 
-    void start() {
-        EventQueue.invokeLater(new Runnable() {
-
-            int lastWidth = Math.max(1, graphics.getWidth());
-            int lastHeight = Math.max(1, graphics.getHeight());
-
-            public void run() {
-                if (!running) {
-                    return;
-                }
-
-//                graphics.updateTime();
-                synchronized (runnables) {
-                    for (int i = 0; i < runnables.size(); i++) {
-                        try {
-                            runnables.get(i).run();
-                        } catch (Throwable t) {
-                            t.printStackTrace();
-                        }
-                    }
-                    runnables.clear();
-                }
-                input.update();
-
-                int width = Math.max(1, graphics.getWidth());
-                int height = Math.max(1, graphics.getHeight());
-                if (lastWidth != width || lastHeight != height) {
-                    lastWidth = width;
-                    lastHeight = height;
-                    Gdx.gl.glViewport(0, 0, lastWidth, lastHeight);
-                    for (ApplicationListener listener : listeners) {
-                        listener.resize(width, height);
-                    }
-                }
-                input.processEvents();
-
-                audio.update();
-//                Display.update();
-//                if (graphics.vsync) {
-//                    Display.sync(60);
-//                }
-                if (running) {
-                    EventQueue.invokeLater(this);
-                } else {
-                    stopped();
-                }
-            }
-        });
-    }
-
-    protected void stopped() {
-        System.out.println("STOPPED!");
-    }
-
-    public void stop() {
-        if (!running) {
-            return;
-        }
-        running = false;
-        try {
-            Display.destroy();
-        } catch (Throwable ignored) {
-        }
-        EventQueue.invokeLater(new Runnable() {
-
-            public void run() {
-                for (ApplicationListener listener : listeners) {
-                    listener.pause();
-                    listener.dispose();
-                }
-            }
-        });
-    }
-
     @Override
     public long getJavaHeap() {
         return Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
@@ -300,7 +229,6 @@ public class LwjglMultiCanvas implements Application {
     public long getNativeHeap() {
         return getJavaHeap();
     }
-    Map<String, Preferences> preferences = new HashMap<String, Preferences>();
 
     @Override
     public Preferences getPreferences(String name) {
@@ -335,6 +263,7 @@ public class LwjglMultiCanvas implements Application {
         }
     }
 
+    @Override
     public void log(String tag, String message) {
         if (logLevel >= LOG_INFO) {
             System.out.println(tag + ": " + message);
@@ -375,11 +304,15 @@ public class LwjglMultiCanvas implements Application {
 
             @Override
             public void run() {
-                for (ApplicationListener listener : LwjglMultiCanvas.this.listeners) {
-                    listener.pause();
-                    listener.dispose();
+                // shutdown all applications
+                for (AWTCanvasContext context : canvases) {
+                    if (context.initialized) {
+                        context.listener.pause();
+                        context.listener.dispose();
+                    }
                 }
-                System.exit(-1);
+                audio.dispose();
+                running = false;
             }
         });
     }

@@ -20,7 +20,7 @@ public class BasicApplication implements ApplicationListener {
     public BasicApplication(Color color) {
         this.color = color;
     }
-    
+
     @Override
     public void create() {
         if (mesh == null) {
@@ -37,14 +37,20 @@ public class BasicApplication implements ApplicationListener {
     @Override
     public void resize(int width, int height) {
     }
+    float ticks;
 
     @Override
     public void render() {
         Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        
+
         Gdx.gl.glClear(GL10.GL_COLOR_BUFFER_BIT);
-        Gdx.gl.glClearColor(color.r, color.g, color.b, color.a);
+        Gdx.gl.glClearColor(color.r * ticks, color.g * ticks, color.b, color.a);
         mesh.render(GL10.GL_TRIANGLES, 0, 3);
+        ticks += 0.1f;
+
+        if (ticks > 1.0f) {
+            ticks = 0;
+        }
     }
 
     @Override

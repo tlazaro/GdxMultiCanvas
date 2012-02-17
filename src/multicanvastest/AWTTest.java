@@ -6,7 +6,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
 import org.lwjgl.LWJGLException;
-import org.lwjgl.opengl.AWTGLCanvas;
+import org.lwjgl.opengl.AWTGLCanvas2;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.util.glu.GLU.*;
@@ -23,7 +23,7 @@ public class AWTTest extends Frame {
     /**
      * AWT GL canvas
      */
-    private AWTGLCanvas canvas0, canvas1, canvas2;
+    private AWTGLCanvas2 canvas0, canvas1, canvas2;
     private volatile float angle;
 
     /**
@@ -33,7 +33,7 @@ public class AWTTest extends Frame {
         setTitle("LWJGL AWT Canvas Test");
         setSize(640, 320);
         setLayout(new GridLayout(1, 2));
-        add(canvas0 = new AWTGLCanvas() {
+        add(canvas0 = new AWTGLCanvas2() {
 
             int current_height;
             int current_width;
@@ -65,7 +65,7 @@ public class AWTTest extends Frame {
                 }
             }
         });
-        add(canvas1 = new AWTGLCanvas() {
+        add(canvas1 = new AWTGLCanvas2() {
 
             int current_height;
             int current_width;
@@ -97,7 +97,7 @@ public class AWTTest extends Frame {
                 }
             }
         });
-        add(canvas2 = new AWTGLCanvas() {
+        add(canvas2 = new AWTGLCanvas2() {
 
             int current_height;
             int current_width;
