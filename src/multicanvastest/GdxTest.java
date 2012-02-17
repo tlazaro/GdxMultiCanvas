@@ -42,21 +42,21 @@ public class GdxTest extends JFrame {
         JPanel panel = new JPanel();
         panel.setLayout(new BorderLayout(0,0));
         canvas0 = new AWTGLCanvas2();
-        app.addCanvas(canvas0, new BasicApplication(Color.CYAN));
+        app.addCanvas(canvas0, new BasicApplication("Left ", Color.CYAN));
         panel.add(canvas0, BorderLayout.CENTER);
         add(panel);
         
         panel = new JPanel();
         panel.setLayout(new BorderLayout(0,0));
         canvas1 = new AWTGLCanvas2();
-        app.addCanvas(canvas1, new BasicApplication(Color.MAGENTA));
+        app.addCanvas(canvas1, new BasicApplication("Middle ",Color.MAGENTA));
         panel.add(canvas1, BorderLayout.CENTER);
         add(panel);
         
         panel = new JPanel();
         panel.setLayout(new BorderLayout(0,0));
         canvas2 = new AWTGLCanvas2();
-        app.addCanvas(canvas2, new BasicApplication(Color.YELLOW));
+        app.addCanvas(canvas2, new BasicApplication("Right ", Color.YELLOW));
         panel.add(canvas2, BorderLayout.CENTER);
         add(panel);
         

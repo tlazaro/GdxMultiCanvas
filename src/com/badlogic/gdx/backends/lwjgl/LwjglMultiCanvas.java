@@ -32,7 +32,7 @@ public class LwjglMultiCanvas implements Application {
     final LwjglGraphics2 graphics;
     final OpenALAudio audio;
     final LwjglFiles files;
-    final LwjglInput input;
+    final LwjglMultiCanvasInput input;
     final List<Runnable> runnables = new ArrayList<Runnable>();
     final List<LwjglMultiCanvas.AWTCanvasContext> canvases = new ArrayList<LwjglMultiCanvas.AWTCanvasContext>();
     boolean running = true;
@@ -56,7 +56,7 @@ public class LwjglMultiCanvas implements Application {
         graphics = new LwjglGraphics2(config);
         audio = new OpenALAudio();
         files = new LwjglFiles();
-        input = new LwjglInput();
+        input = new LwjglMultiCanvasInput();
 
         Gdx.app = this;
         Gdx.graphics = graphics;
@@ -118,10 +118,10 @@ public class LwjglMultiCanvas implements Application {
             if (!graphics.setupCanvas(context.canvas)) {
                 return;
             }
-//            input.setCurrentCanvas(context.canvas); TODO
+            input.setCurrentCanvas(context.canvas);
         }
 
-//        input.processEvents();
+        input.processEvents();
 
         if (!context.initialized) {
             // initialize canvas sub-App
@@ -181,7 +181,7 @@ public class LwjglMultiCanvas implements Application {
             }
         }
 
-//        input.resetValues(); TODO
+        input.resetValues();
     }
 
     public void addCanvas(AWTGLCanvas2 canvas, ApplicationListener listener) {
@@ -191,7 +191,7 @@ public class LwjglMultiCanvas implements Application {
         synchronized (canvases) {
             canvases.add(context);
         }
-//        input.initContext(canvas); TODO
+        input.initContext(canvas);
     }
 
     public void removeCanvas(AWTGLCanvas2 canvas) {
@@ -213,7 +213,7 @@ public class LwjglMultiCanvas implements Application {
                 context.listener.dispose();
             }
         }
-//        input.removeContext(canvas); //TODO
+        input.removeContext(canvas);
     }
 
     @Override
